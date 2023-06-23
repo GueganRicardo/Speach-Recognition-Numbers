@@ -3,10 +3,10 @@ n_figura = 1;
 %Ler os ficheiros de audio
 wave = cell(50, 10);%contem todas as ondas sonoras
 fs = cell(50, 10);
-%caracteristicas = cell(50,10);
+possibilidades = zeros(10,1);
 for j = 0:9
     for i = 0:49
-        local_fich = ["34\"];
+        local_fich = ("34\");
         local_fich = local_fich.append(int2str(j));
         local_fich = local_fich.append("_34_");
         local_fich = local_fich.append(int2str(i));
@@ -14,7 +14,6 @@ for j = 0:9
         [wave{i+1,j+1} ,fs{i+1,j+1}] =audioread(local_fich);
     end
 end
-
 %% filtrar frequencias de voz do ruido (1000 - 4000 hz)
 filtered_waves = cell(50, 10);
 
@@ -31,25 +30,22 @@ for j = 1:10
         X_positivo = X(1:tamJanela/2+1);
         X_normalizado = abs(X_positivo) / tamJanela;
         sinais(:,i) = X_normalizado;
-        %X (1:1000, i) = 0; % filtro
-        %filtered_waves{i, j} = ifft(X);
+        sinais (1:1000, i) = 0; % filtro
+        filtered_waves{i, j} = ifft(X);
     end
     freq{j} = median(sinais, 2);
     Q1{j} = quantile(sinais, 0.25, 2);
     Q3{j} = quantile(sinais, 0.75, 2);
 end
-for i = 1:50
-    for j = 1:10
-        subplot(2,5,j);
-        plot(ifft(X));
-        hold on;
-        title(num2str(d-1));
-        xlabel('Frequência (Hz)');
-        ylabel('Amplitude (normalizada)');
-    end
+for j = 1:10
+    subplot(2,5,j);
+    plot(wave{i, j});
+    hold on;
+    title(num2str(j-1));
+    xlabel('Frequência (Hz)');
+    ylabel('Amplitude (normalizada)');
 end
 %% fazer a analise no tempo
-caracteristica = zeros(50,3);
 figure(n_figura);
 n_figura = n_figura + 1;
 for j = 0:9
@@ -66,8 +62,6 @@ end
 
 
 %% analise de tempo / amplitude mas norm em x e y
-
-caracteristica = zeros(50,3);
 figure(n_figura);
 n_figura = n_figura + 1;
 [k, l] = cellfun(@size, wave);
@@ -108,7 +102,6 @@ for j = 0:9
         norm_wave = this_wave / max_amp;
 
         %lower lim
-        energia_janela = 0;
         janela = -1;
         tolerancia = 0;
         while tolerancia < 10
@@ -171,7 +164,6 @@ end
 boxplot(energia, eixo_x);
 
 %% plotar a energia em linhas mas em janelas
-
 n_janelas = 50; %tamanho do vetor / numero de janelas = numero de samples em cada janela. assim todas as janelas têm o mesmo tamanho relativo. possivelmente sera necessario dar trim do vetor para detetar quando começa e acaba o som
 new_wave = trim_waves;
 energias_janelas = zeros(50, 10, n_janelas);
@@ -201,7 +193,7 @@ end
 figure(n_figura);
 n_figura = n_figura + 1;
 for e = 0:9
-    subplot(3,4,e+1);
+    subplot(2,5,e+1);
     for s = 1:50
         plot(1:n_janelas, squeeze(energias_janelas(s, e + 1, :)))
         hold on
@@ -224,26 +216,22 @@ for e = 0:9
     end
     title(int2str(e))
     xlabel("Tempo")
-    ylabel("Amplitude")
+    ylabel("Energia Normalizada")
+    ylim([0 200])
 end
-    
-
-
-        
 
 %% boxplot do racio
-figure(n_figura);
-n_figura = n_figura + 1;
-racios = energias_metades(1:50, 1:10, 1) ./ energias_metades(1:50, 1:10, 2);
-boxplot(racios, eixo_x);
-ylim([0 30]);
-
+% figure(n_figura);
+% n_figura = n_figura + 1;
+% racios = energias_metades(1:50, 1:10, 1) ./ energias_metades(1:50, 1:10, 2);
+% boxplot(racios, eixo_x);
+% ylim([0 30]);
 %% plotar a energia em boxplots mas em janelas
-
-n_janelas = 50; %tamanho do vetor / numero de janelas = numero de samples em cada janela. assim todas as janelas têm o mesmo tamanho relativo. possivelmente sera necessario dar trim do vetor para detetar quando começa e acaba o som
+n_janelas = 10; %tamanho do vetor / numero de janelas = numero de samples em cada janela. assim todas as janelas têm o mesmo tamanho relativo. possivelmente sera necessario dar trim do vetor para detetar quando começa e acaba o som
 new_wave = trim_waves;
 energias_metades = zeros(50, 10, n_janelas);
 for j = 1:n_janelas
+    hit = zeros(10,1);
     figure(n_figura);
     n_figura = n_figura + 1;
     % cada digito
@@ -259,12 +247,35 @@ for j = 1:n_janelas
             upper_lim = window_sz * j;
             aux = power(this_wave(lower_lim:upper_lim, 1), 2);
             energia(s, e + 1) = sum(aux);
-            disp(energia(s, e + 1))
+            %disp(energia(s, e + 1))
             energias_metades(s, e + 1, j) = energia(s, e + 1);
-        end 
+            %fazer os if's das janelas
+            % 90% rate em 0 3 100% 2 7 98% 6
+            if j == 2 && energia(s,e+1)>100
+                hit(e+1)= hit(e+1)+1;
+                possibilidades(0 + 1) =-1;
+                possibilidades(3 + 1) =-1;
+                possibilidades(2 + 1) =-1;
+                possibilidades(7 + 1) =-1;
+                possibilidades(6 + 1) =-1;
+            end
+%             94/98% rate em 6 8
+%             if j == 6 && energia(s,e+1)>110
+%                 hit(e+1)= hit(e+1)+1;
+%                 possibilidades(6 + 1) =-1;
+%                 possibilidades(8 + 1) =-1;
+%             end
+            % 100% rate em 6 8
+            if j == 7 && energia(s,e+1)>85
+                hit(e+1)= hit(e+1)+1;
+                possibilidades(6 + 1) =-1;
+                possibilidades(8 + 1) =-1;
+            end
+        end
     end
     boxplot(energia, eixo_x);
-    ylim([0 200]);
+    ylim([0 1000]);
+    disp(hit);
 end
 
 %boxplot do racio
@@ -274,18 +285,36 @@ racios = energias_metades(1:50, 1:10, 1) ./ energias_metades(1:50, 1:10, 2);
 boxplot(racios, eixo_x);
 ylim([0 30]);
 
-
+%% decisão com base nos piccos negativos 
+%permite concluir que não pode ser um 2 ou 6 ou 7
+%com base nas amostras tem 2% de falha
+treshHold = -0.80;
+hit = zeros(10,1);
+for sinal = 1:50
+    for digito = 0:9
+        count = sum(trim_waves{sinal,digito+1}<treshHold);
+        if count<10
+            hit(digito+1,1) = hit(digito+1,1) + 1;
+            possibilidades(2+1) = -1;
+            possibilidades(6+1)=-1;
+            possibilidades(7+1)=-1;
+        end
+    end
+end
+disp(hit)
+disp(possibilidades)
 %% fazer a analise com a tranformada de fourier
-tamJanela = 48000;%testar para várias janelas
+tamJanela = 6000;%testar para várias janelas
 freq = cell(10,1);%ver os picos em diferentes itervalos de freq
 Q1 = cell(10,1);
 Q3 = cell(10,1);
 figure(n_figura);
 n_figura = n_figura + 1;
+sinais_todos=zeros(10,tamJanela/2+1, 50);
 for j = 1:10
     sinais = zeros(tamJanela/2+1, 50);
     for i = 1:50
-        X = fft(wave{i,j}, tamJanela);
+        X = fft(trim_waves{i,j}, tamJanela);
         X_positivo = X(1:tamJanela/2+1);
         X_normalizado = abs(X_positivo) / tamJanela;
         sinais(:,i) = X_normalizado;
@@ -293,6 +322,7 @@ for j = 1:10
     freq{j} = median(sinais, 2);
     Q1{j} = quantile(sinais, 0.25, 2);
     Q3{j} = quantile(sinais, 0.75, 2);
+    sinais_todos(j,:,:)=sinais(:,:);
 end
 
 for d = 1:10
@@ -301,13 +331,39 @@ for d = 1:10
     hold on;
     plot(Q1{d},'r--');
     plot(Q3{d},'k--');
+    ylim([0,0.005])
     hold off;
     legend('Median', 'Q1', 'Q3');
     title(num2str(d-1));
     xlabel('Frequência (Hz)');
     ylabel('Amplitude (normalizada)');
 end
+%% boxplot do spectrall roll off
+figure(n_figura);
+n_figura = n_figura + 1;
+rolloff = zeros(50,10);
+for d = 0:9
+    
+    for sinal = 1:50
+        this_wave = sinais_todos(d+1,:,sinal);
+        this_wave = this_wave.^2;
+        this_wave = this_wave/(sum(this_wave));
+        somatorio = cumsum(this_wave);
+        rolloff(sinal,d+1) = find(somatorio >= 0.85,1);
+    end
+    
+end
+boxplot(rolloff,0:9)
+%% encontrar os picos do sinal
+figure(n_figura);
+n_figura = n_figura + 1;
+picos = zeros(50,10,3);
+for d = 0:9
+    for sinal = 1:50
+        this_wave = sinais_todos(d+1,:,sinal);
+        findpeaks(this_wave,'MinPeakHeight',0.001)
+    end
+end
 %% fazer a analise com a STFT
 %efetito das diferentes janelas sobreposição numerod e pontos
-
 
