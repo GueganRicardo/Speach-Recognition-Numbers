@@ -304,7 +304,7 @@ end
 disp(hit)
 disp(possibilidades)
 %% fazer a analise com a tranformada de fourier
-tamJanela = 6000;%testar para várias janelas
+tamJanela = 48000%testar para várias janelas
 freq = cell(10,1);%ver os picos em diferentes itervalos de freq
 Q1 = cell(10,1);
 Q3 = cell(10,1);
@@ -314,7 +314,14 @@ sinais_todos=zeros(10,tamJanela/2+1, 50);
 for j = 1:10
     sinais = zeros(tamJanela/2+1, 50);
     for i = 1:50
-        X = fft(trim_waves{i,j}, tamJanela);
+        % Apply a highpass filter to the signal
+        trimmed_signal = trim_waves{i, j};
+        filtered_signal = highpass(trimmed_signal, 1000, 48000);
+        
+        % Apply the Hamming window to the filtered signal
+        windowed_signal = filtered_signal;% .* blackman(length(filtered_signal));
+        
+        X = fft(windowed_signal, tamJanela);
         X_positivo = X(1:tamJanela/2+1);
         X_normalizado = abs(X_positivo) / tamJanela;
         sinais(:,i) = X_normalizado;
@@ -366,4 +373,40 @@ for d = 0:9
 end
 %% fazer a analise com a STFT
 %efetito das diferentes janelas sobreposição numerod e pontos
+figure(n_figura);
+n_figura = n_figura + 1;
+% Define the signal and its parameters
+fs = 48000;  % Sample rate (Hz)
+t = 0:1/fs:1;  % Time vector (1 second)
+f1 = 1000;  % Frequency of the signal (Hz)
+% Define the STFT parameters
+frameSize = 1024;
+overlap = 0.75;  % 75% overlap
+nfft = 1024;  % FFT size
+
+for e = 0:9
+    subplot(4, 3, e + 1)
+    sinais = zeros(tamJanela/2+1, 50);
+    for i = 1:50
+        % Apply a highpass filter to the signal
+        trimmed_signal = trim_waves{i, e + 1};
+        filtered_signal = highpass(trimmed_signal, 1000, 48000);
+        sinais(1:size(filtered_signal),i) = filtered_signal;
+    end
+
+    
+    
+    % Calculate the spectrogram
+    spectrogram(median(sinais, 2), frameSize, round(overlap*frameSize), nfft, fs, 'yaxis');
+    
+    % Set the color map for the spectrogram
+    colormap jet;
+    
+    % Add labels and title to the plot
+    xlabel('Time (s)');
+    ylabel('Frequency (Hz)');
+    title(num2str(e));
+    end
+
+
 
